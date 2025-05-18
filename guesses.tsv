@@ -1,0 +1,16 @@
+owner	debt_name	amount	rate	length
+Perp1	Perp1_Student	30000	0.03	10
+Perp5	Perp5_Student	30000	0.034	10
+Perp2	Perp2_Student	25000	0.04	10
+Perp4	Perp4_Student	25000	0.044	10
+Ethan	Ethan_Student_2	14000	0.045	10
+Perp6	Perp6_Student	40000	0.05	10
+Perp8	Perp8_Mortgage	225000	0.05	30
+Ethan	Ethan_Student_1	28000	0.056	10
+Perp3	Perp3_Student	30000	0.055	10
+Perp4	Perp4_Mortgage	250000	0.055	30
+Perp2	Perp2_Mortgage	90000	0.064	15
+Perp3	Perp3_Mortgage	90000	0.063	15
+Ethan	Ethan_Student_3	14000	0.065	10
+Perp7	Perp7_Student	10000	0.07	10
+Perp8	Perp8_Student	25000	0.07	10
