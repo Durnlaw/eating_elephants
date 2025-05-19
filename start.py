@@ -94,26 +94,26 @@ net_inc_prcnt = .015
 group_extra_pay = net_inc_prcnt*sum(incomes)/12
 print("Monthly contribution:", group_extra_pay)
 
-last_period_all_loans = []
-
+# cycle through all potential payments
 while total_payments_remaining >0:
     total_payments_remaining += -1
+    # cycle through each loan
     for each in range(0, loan_count):
+        # if there is principle left on the loan
         if principles[each]>0:
-            last_period = 0
+            # if there are still payments left on THIS loan
             if payments_left[each]>0:
                 current_period[each] += 1
                 payments_left[each] += -1
 
                 # now determine how much of the payment is interest and principle
                 int_portion = round(principles[each]*(int_rates[each]/12), 2)
-                #IPMT std_mnthly_rate[each]+(1+(int_rates[each]/12))**(current_period[each]-1)*((principles[each]*int_rates[each]/12)-std_mnthly_rate[each])
                 prin_portion = round(std_mnthly_rate[each] - int_portion, 2)
 
+                # If the standard monthly rate covers what's left of the loan
                 if (std_mnthly_rate[each]) > principles[each]:
                     int_paid[each] += int_portion
                     remaining_loan = int_portion+principles[each]
-                    # last_period = current_period[each]
 
                     principles[each] = 0
                     print(descrips[each]
@@ -122,10 +122,10 @@ while total_payments_remaining >0:
                     , int_portion
                     , round(principles[each],2), int_paid[each])
                 
+                # If the std plus group extra covers what's left of the loan
                 elif (group_extra_pay+std_mnthly_rate[each]) > principles[each]:
                     int_paid[each] += int_portion
                     remaining_loan = int_portion+principles[each]
-                    # last_period = current_period[each]
                     group_finisher = (group_extra_pay+std_mnthly_rate[each])-principles[each]
 
                     principles[each] = 0
@@ -135,6 +135,7 @@ while total_payments_remaining >0:
                     , int_portion
                     , round(principles[each],2), int_paid[each])
                 
+                # Standard payment plus group extra paying a normal payment off
                 else:
                     principles[each] += -(prin_portion+group_extra_pay)
                     int_paid[each] += int_portion
@@ -144,12 +145,12 @@ while total_payments_remaining >0:
                     , std_mnthly_rate[each], group_extra_pay
                     , int_portion
                     , round(principles[each],2), int_paid[each])
-            # last_period_all_loans.append(last_period)
             else:
                 pass
         else:
             pass
 
+# let's handle how much was saved and how long it took to get here
 loan_savings = []
 
 for each in range(0, loan_count):
@@ -158,9 +159,6 @@ for each in range(0, loan_count):
 
 print(loan_savings)
 print(current_period)
-# print(len(last_period_all_loans))
-# print(last_period_all_loans)
-
 
 
 
