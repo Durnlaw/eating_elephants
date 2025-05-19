@@ -8,11 +8,12 @@ import pandas as pd
 #https://www.experts-exchange.com/articles/1948/A-Guide-to-the-PMT-FV-IPMT-and-PPMT-Functions.html
 #https://money.stackexchange.com/questions/94140/what-is-the-math-used-to-calculate-the-impact-that-overpaying-a-mortgage-has-an
 
-# setup the loan guesses
+# import the loan guesses
 debt_file = 'guesses.tsv'
 debt_owners = []
 descrips = []
 principles = []
+original_principles = []
 int_rates = []
 payments_left = []
 iter = 0
@@ -24,18 +25,21 @@ with open(debt_file,'r') as data:
             debt_owners.append(line[0])
             descrips.append(line[1])
             principles.append(int(line[2]))
+            original_principles.append(int(line[2]))
             int_rates.append(round(float(line[3]),4))
             payments_left.append(int(line[4]))
             iter +=1
         # print(line[0], line[1], line[2], line[3], line[4])
 
-original_principles = principles
+# make a list to retain the origianl principles in case you need that
+# also just get some calculations out of the way
+
 total_debts = sum(principles)
 total_payments_remaining = sum(payments_left)
 loan_count = len(debt_owners)
-current_date = str(date.today())
+# current_date = str(date.today())
 
-# setup the incomes
+# import the incomes
 income_file = 'incomes.tsv'
 names = []
 incomes = []
@@ -49,66 +53,113 @@ with open(income_file,'r') as data:
             incomes.append(int(line[1]))
             iter2 +=1
 
+# print everything out just to check
 print(names)
 print(incomes)
 print('Total debts:', total_debts)
 print('Total payments:', total_payments_remaining)
-print(current_date)
+# print(current_date)
 
-print('Total Incomes:', sum(incomes))
-print("Enter percentage of net income, .015")
-# net_inc_prcnt = float(input())
-net_inc_prcnt = .015
-monthly_contrib = net_inc_prcnt*sum(incomes)/12
-print("Monthly contribution:", monthly_contrib)
-
-# Get the standard rates and their full term debt
-monthly_rates = []
+# Get the standard rates, their full term debt, and debt ratios
+std_mnthly_rate = []
 full_term_debts = []
 debt_ratios = []
 for each in range(0, loan_count):
-    monthly_rates.append(
+    std_mnthly_rate.append(
         round(
             # (int_rates[each]/(1-(1+int_rates[each])**-payments_left[each]))*principles[each]
             (int_rates[each]/12*principles[each]/(
             1-(1+(int_rates[each]/12))**-payments_left[each])
         ),2))
-        # )
-    full_term_debts.append(round(monthly_rates[each]*payments_left[each],2))
+    full_term_debts.append(round(std_mnthly_rate[each]*payments_left[each],2))
     debt_ratios.append(round((full_term_debts[each]/principles[each]),2))
 
 # Make a list for ticking down the debt
 # full_term_debts_ticker = full_term_debts
-print(monthly_rates)
+print(std_mnthly_rate)
 print(full_term_debts)
 print(debt_ratios)
 
 
-principle_paid = []
-interest_paid = []
-current_payment = [0] * loan_count
+
 # Now get all of them to tick down at the same time
+principle_paid = []
+current_period = [0] * loan_count
+int_paid = [0]* loan_count
+
+print('Total Incomes:', sum(incomes))
+print("Enter percentage of net income, .015")
+# net_inc_prcnt = float(input())
+net_inc_prcnt = .015
+group_extra_pay = net_inc_prcnt*sum(incomes)/12
+print("Monthly contribution:", group_extra_pay)
+
+last_period_all_loans = []
+
 while total_payments_remaining >0:
+    total_payments_remaining += -1
     for each in range(0, loan_count):
-        if payments_left[each]>0:
-            current_payment[each] += 1
-            total_payments_remaining += -1
-            payments_left[each] += -1
+        if principles[each]>0:
+            last_period = 0
+            if payments_left[each]>0:
+                current_period[each] += 1
+                payments_left[each] += -1
 
-            # now determine how much of the payment is interest and principle
-            int_portion = round(principles[each]*(int_rates[each]/12), 2)
-            #IPMT monthly_rates[each]+(1+(int_rates[each]/12))**(current_payment[each]-1)*((principles[each]*int_rates[each]/12)-monthly_rates[each])
+                # now determine how much of the payment is interest and principle
+                int_portion = round(principles[each]*(int_rates[each]/12), 2)
+                #IPMT std_mnthly_rate[each]+(1+(int_rates[each]/12))**(current_period[each]-1)*((principles[each]*int_rates[each]/12)-std_mnthly_rate[each])
+                prin_portion = round(std_mnthly_rate[each] - int_portion, 2)
 
-            prin_portion = round(monthly_rates[each] - int_portion, 2)
-            principles[each] += -prin_portion
+                if (std_mnthly_rate[each]) > principles[each]:
+                    int_paid[each] += int_portion
+                    remaining_loan = int_portion+principles[each]
+                    # last_period = current_period[each]
 
-            print(descrips[each], current_payment[each]
-            , payments_left[each], monthly_rates[each]
-            , int_portion, prin_portion, round(principles[each],2))
-            
-print(current_payment)
-            # print(principles[each], principles[each]-monthly_rates[each])
+                    principles[each] = 0
+                    print(descrips[each]
+                    , current_period[each], payments_left[each]
+                    , round(remaining_loan,2), '0'
+                    , int_portion
+                    , round(principles[each],2), int_paid[each])
+                
+                elif (group_extra_pay+std_mnthly_rate[each]) > principles[each]:
+                    int_paid[each] += int_portion
+                    remaining_loan = int_portion+principles[each]
+                    # last_period = current_period[each]
+                    group_finisher = (group_extra_pay+std_mnthly_rate[each])-principles[each]
 
+                    principles[each] = 0
+                    print(descrips[each]
+                    , current_period[each], payments_left[each]
+                    , round(remaining_loan,2), group_finisher
+                    , int_portion
+                    , round(principles[each],2), int_paid[each])
+                
+                else:
+                    principles[each] += -(prin_portion+group_extra_pay)
+                    int_paid[each] += int_portion
+
+                    print(descrips[each]
+                    , current_period[each], payments_left[each]
+                    , std_mnthly_rate[each], group_extra_pay
+                    , int_portion
+                    , round(principles[each],2), int_paid[each])
+            # last_period_all_loans.append(last_period)
+            else:
+                pass
+        else:
+            pass
+
+loan_savings = []
+
+for each in range(0, loan_count):
+    loan_savings.append(
+        round(full_term_debts[each]-original_principles[each]-int_paid[each],2))
+
+print(loan_savings)
+print(current_period)
+# print(len(last_period_all_loans))
+# print(last_period_all_loans)
 
 
 
