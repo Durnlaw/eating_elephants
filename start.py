@@ -87,14 +87,15 @@ print(debt_ratios)
 
 
 # Now get all of them to tick down at the same time
-principle_paid = [0] * loan_count
+loan_owner_prin_paid = [0] * loan_count
+
 current_period = [0] * loan_count
 int_paid = [0]* loan_count
 
 print('Total Incomes:', sum(incomes))
 print("Enter percentage of net income, .015")
-# net_inc_prcnt = float(input())
-net_inc_prcnt = .015
+net_inc_prcnt = float(input())
+# net_inc_prcnt = .015
 group_extra_pay = net_inc_prcnt*sum(incomes)/12
 print("Monthly contribution:", group_extra_pay)
 
@@ -103,7 +104,7 @@ def loan_group_walkdown(loan_num):
     # If the standard monthly rate covers what's left of the loan
     if (std_mnthly_rate[loan_num]) > principles[loan_num]:
         int_paid[loan_num] += int_portion
-        principle_paid[loan_num] += principles[loan_num]
+        loan_owner_prin_paid[loan_num] += principles[loan_num]
         remaining_loan = int_portion+principles[loan_num]
 
         principles[loan_num] = 0
@@ -114,9 +115,9 @@ def loan_group_walkdown(loan_num):
         # , round(principles[loan_num],2), int_paid[loan_num])
 
     # If the std pay plus group extra plus new mnthly pay covers what's left of the loan
-    elif (group_extra_pay+std_mnthly_rate[loan_num]) > principles[loan_num]:
+    elif (group_extra_pay+std_mnthly_rate[loan_num]+sum(list(set(new_mnthly_pay)))) > principles[loan_num]:
         int_paid[loan_num] += int_portion
-        principle_paid[loan_num] += principles[loan_num]
+        loan_owner_prin_paid[loan_num] += prin_portion
         remaining_loan = int_portion+principles[loan_num]
         group_finisher = (group_extra_pay+sum(list(set(new_mnthly_pay)))+std_mnthly_rate[loan_num])-principles[loan_num]
 
@@ -131,7 +132,7 @@ def loan_group_walkdown(loan_num):
     else:
         principles[loan_num] += -(prin_portion+group_extra_pay+sum(list(set(new_mnthly_pay))))
         int_paid[loan_num] += int_portion
-        principle_paid[loan_num] += prin_portion
+        loan_owner_prin_paid[loan_num] += prin_portion
 
         # print(descrips[loan_num]
         # , current_period[loan_num], payments_left[loan_num]
@@ -144,7 +145,7 @@ def loan_walkdown(loan_num):
     # If the standard monthly rate covers what's left of the loan
     if (std_mnthly_rate[loan_num]) > principles[loan_num]:
         int_paid[loan_num] += int_portion
-        principle_paid[loan_num] += principles[loan_num]
+        loan_owner_prin_paid[loan_num] += principles[loan_num]
         remaining_loan = int_portion+principles[loan_num]
 
         principles[loan_num] = 0
@@ -158,7 +159,7 @@ def loan_walkdown(loan_num):
     else:
         principles[loan_num] += -(prin_portion)
         int_paid[loan_num] += int_portion
-        principle_paid[loan_num] += prin_portion
+        loan_owner_prin_paid[loan_num] += prin_portion
         # print(descrips[loan_num]
         # , current_period[loan_num], payments_left[loan_num]
         # , std_mnthly_rate[loan_num], 'Grp: 0'
@@ -172,7 +173,7 @@ while total_payments_remaining > 0:
     for each in range(0, loan_count):
         # Add the logic for fully paid loans to the group monthly
         if principles[each] == 0:
-            new_mnthly_pay.append((original_principles[each]-principle_paid[each])/(original_payments[each]-current_period[each]))
+            new_mnthly_pay.append((original_principles[each]-loan_owner_prin_paid[each])/(original_payments[each]-current_period[each]))
             
         # if there is principle left on the loan
         elif principles[each]>0:
@@ -190,19 +191,19 @@ while total_payments_remaining > 0:
                 # If it's the first loan, process that loan with group_pay
                 if each == 0:
                     loan_group_walkdown(each)
-                    # print(current_period)
-                    # print(principles[each])
+                    print(current_period)
+                    print(principles[each])
                 # If it's NOT the first loan, but the first loan is still being paid
                 # process that loan without the group_pay
                 elif current_period[each] == current_period[each-1]:
                     loan_walkdown(each)
-                    # print(current_period)
-                    # print(principles[each])
+                    print(current_period)
+                    print(principles[each])
                 # If the first loan is done, then process the next loan with group_pay
                 elif current_period[each] > current_period[each-1]:
                     loan_group_walkdown(each)
-                    # print(current_period)
-                    # print(principles[each])
+                    print(current_period)
+                    print(principles[each])
 
 
 
@@ -216,7 +217,7 @@ for each in range(0, loan_count):
 print(loan_savings)
 print(sum(loan_savings))
 print(current_period)
-print(principle_paid)
+print(loan_owner_prin_paid)
 
 
 
