@@ -11,14 +11,15 @@ import pandas as pd
 # import the loan guesses
 print("Options: 'guesses_by_prin.tsv', 'guesses_by_rate.tsv'")
 # debt_file = input()
+print('----------------------------------------------------------')
 debt_file = 'guesses_by_rate.tsv'
 debt_owners = []
 descrips = []
 principles = []
-original_principles = []
+original_principles = [] # for comparison later on
 int_rates = []
 payments_left = []
-original_payments = []
+original_payments = [] # for comparison later on
 iter = 0
 with open(debt_file,'r') as data:
    for line in csv.reader(data, delimiter='\t'):
@@ -35,9 +36,7 @@ with open(debt_file,'r') as data:
             iter +=1
         # print(line[0], line[1], line[2], line[3], line[4])
 
-# make a list to retain the origianl principles in case you need that
 # also just get some calculations out of the way
-
 total_debts = sum(principles)
 total_payments_remaining = sum(payments_left)
 loan_count = len(debt_owners)
@@ -58,10 +57,11 @@ with open(income_file,'r') as data:
             iter2 +=1
 
 # print everything out just to check
-print('names:', names)
+print('Loan names:', names)
 print('incomes:', incomes)
 print('Total debts:', total_debts)
 print('Total payments:', total_payments_remaining)
+print('----------------------------------------------------------')
 # print(current_date)
 
 # Get the standard rates, their full term debt, and debt ratios
@@ -71,35 +71,32 @@ debt_ratios = []
 for each in range(0, loan_count):
     std_mnthly_rate.append(
         round(
-            # (int_rates[each]/(1-(1+int_rates[each])**-payments_left[each]))*principles[each]
             (int_rates[each]/12*principles[each]/(
             1-(1+(int_rates[each]/12))**-payments_left[each])
         ),2))
     full_term_debts.append(round(std_mnthly_rate[each]*payments_left[each],2))
     debt_ratios.append(round((full_term_debts[each]/principles[each]),2))
 
-# Make a list for ticking down the debt
-# full_term_debts_ticker = full_term_debts
 print('Std Monthly Loan Rate', std_mnthly_rate)
 print(full_term_debts)
 print(debt_ratios)
+print('----------------------------------------------------------')
 
 
-
-# Now get all of them to tick down at the same time
+# this list will keep track of how much of the principle the owner pays
 loan_owner_prin_paid = [0] * loan_count
-
 current_period = [0] * loan_count
-int_paid = [0]* loan_count
+int_paid = [0]* loan_count # tracks how much interest we pay to compare later
 
-print('Total Incomes:', sum(incomes))
 print("Enter percentage of net income, .015")
 net_inc_prcnt = float(input())
 # net_inc_prcnt = .015
 group_extra_pay = net_inc_prcnt*sum(incomes)/12
 print("Monthly contribution:", group_extra_pay)
+print('----------------------------------------------------------')
 
-# define a function to walk each loan down WITH the and print out where the loan is out
+# define a function to walk each loan down WITH the group pay 
+# and print out where the loan is at
 def loan_group_walkdown(loan_num):
     # If the standard monthly rate covers what's left of the loan
     if (std_mnthly_rate[loan_num]) > principles[loan_num]:
@@ -114,7 +111,7 @@ def loan_group_walkdown(loan_num):
         # , int_portion
         # , round(principles[loan_num],2), int_paid[loan_num])
 
-    # If the std pay plus group extra plus new mnthly pay covers what's left of the loan
+    # If the std pay + group extra + new mnthly pay covers what's left of the loan
     elif (group_extra_pay+std_mnthly_rate[loan_num]+sum(list(set(new_mnthly_pay)))) > principles[loan_num]:
         int_paid[loan_num] += int_portion
         loan_owner_prin_paid[loan_num] += prin_portion
@@ -128,7 +125,7 @@ def loan_group_walkdown(loan_num):
         # , int_portion
         # , round(principles[loan_num],2), int_paid[loan_num])
 
-    # Standard payment plus group extra paying a normal payment off
+    # Standard payment + group extra + new mnthly paying a normal payment off
     else:
         principles[loan_num] += -(prin_portion+group_extra_pay+sum(list(set(new_mnthly_pay))))
         int_paid[loan_num] += int_portion
@@ -165,15 +162,24 @@ def loan_walkdown(loan_num):
         # , std_mnthly_rate[loan_num], 'Grp: 0'
         # , int_portion
         # , round(principles[loan_num],2), int_paid[loan_num])
+
+# Now get all of them to tick down at the same time
 new_mnthly_pay = []
 
-while total_payments_remaining > 0:
+while total_payments_remaining > 0: # only move forward if there are payments left
     total_payments_remaining += -1
     # cycle through each loan
     for each in range(0, loan_count):
-        # Add the logic for fully paid loans to the group monthly
+        # Fully paid off loans will now contribute their payments to the next loan
         if principles[each] == 0:
-            new_mnthly_pay.append((original_principles[each]-loan_owner_prin_paid[each])/(original_payments[each]-current_period[each]))
+            new_mnthly_pay.append(
+                (original_principles[each]-loan_owner_prin_paid[each])/
+                (original_payments[each]-current_period[each])
+                )
+            # This is weird, but we take the (orig prin - how much the owner paid)
+            # then divide by how many payments remaining there would have been
+            # this reduces the payment amount for finished loan payers but still
+            # obligates that they pay back their principle
             
         # if there is principle left on the loan
         elif principles[each]>0:
@@ -187,23 +193,24 @@ while total_payments_remaining > 0:
                 int_portion = round(principles[each]*(int_rates[each]/12), 2)
                 prin_portion = round(std_mnthly_rate[each] - int_portion, 2)
                 
-                # next big thing. 
                 # If it's the first loan, process that loan with group_pay
                 if each == 0:
                     loan_group_walkdown(each)
-                    print(current_period)
-                    print(principles[each])
+                    # print(current_period)
+                    # print(principles[each])
+
                 # If it's NOT the first loan, but the first loan is still being paid
                 # process that loan without the group_pay
                 elif current_period[each] == current_period[each-1]:
                     loan_walkdown(each)
-                    print(current_period)
-                    print(principles[each])
+                    # print(current_period)
+                    # print(principles[each])
+
                 # If the first loan is done, then process the next loan with group_pay
                 elif current_period[each] > current_period[each-1]:
                     loan_group_walkdown(each)
-                    print(current_period)
-                    print(principles[each])
+                    # print(current_period)
+                    # print(principles[each])
 
 
 
@@ -214,11 +221,11 @@ for each in range(0, loan_count):
     loan_savings.append(
         round(full_term_debts[each]-original_principles[each]-int_paid[each],2))
 
-print(loan_savings)
-print(sum(loan_savings))
-print(current_period)
-print(loan_owner_prin_paid)
-
+print('Interest Prevented by Loan', loan_savings)
+print('Total Interest Prevented', sum(loan_savings))
+print('Loans paid off when:', current_period)
+print("Owner's share of the principle", loan_owner_prin_paid)
+print('----------------------------------------------------------')
 
 
 
